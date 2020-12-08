@@ -88,10 +88,22 @@ head(data)
 
 ### tabu search
 
+tabu_1 <- tabu(data)
+plot(tabu_1)
+tabu_1$arcs
+# remove all arcs from diagnosis to *
+bklst_filtered <- rbind(tabu_1$arcs[3:7,], tabu_1$arcs[15,], tabu_1$arcs[19,])
+bklst_filtered
 
+tabu_2 <- tabu(data, blacklist = bklst_filtered)
+plot(tabu_2)
+tabu_2$arcs
+# remove all arcs from diagnosis to *
+bklst_filtered_2 <- rbind(bklst_filtered, tabu_2$arcs[9,], tabu_2$arcs[17,])
+bklst_filtered_2
 
-
-
+tabu_3 <- tabu(data, blacklist = bklst_filtered_2)
+plot(tabu_3)
 
 
 
