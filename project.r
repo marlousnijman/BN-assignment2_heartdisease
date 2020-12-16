@@ -5,6 +5,9 @@
 # install.packages('ggplot2', dependencies=TRUE)
 # install.packages('caret', dependencies=TRUE)
 # install.packages("dagitty", dependencies = TRUE)
+# install.packages('pcalg', dependencies=TRUE)
+# install.packages("BiocManager")
+# BiocManager::install(c("graph", "RBGL", "Rgraphviz"))
 # remotes::install_github("jtextor/bayesianNetworks")
 
 ### Libraries
@@ -14,6 +17,7 @@ library(bnlearn)
 library(pROC)
 library(ggplot2)
 library(caret)
+library(pcalg)
 
 
 ### Data
@@ -80,13 +84,15 @@ data$ST_depression <- as.numeric(cut(data$ST_depression, c(-0.1, 0.0, 2, 6.5), l
 
 # Bin diagnosis
 data$diagnosis[which(data$diagnosis > 0)] <- 1 
-
-
 head(data)
 
-
-
 ### pc-algorithm
+data
+lables <- colnames(data)
+suffStat <- list(dm = data, nlev = c(5, 2, 4, 3, 3, 2, 3, 4, 2, 3, 3, 4, 3, 2), adaptDF = FALSE)
+pc.fit = pc(suffStat = suffStat, indepTest = disCItest, alpha = 0.05, labels = lables)
+par(cex=0.25)
+plot(pc.fit)
 
 
 
