@@ -7,6 +7,7 @@
 # install.packages("dagitty", dependencies = TRUE)
 # install.packages('pcalg', dependencies=TRUE)
 # install.packages("BiocManager")
+# install.packages('NetworkDistance', dependencies=TRUE)
 # BiocManager::install(c("graph", "RBGL", "Rgraphviz"))
 # remotes::install_github("jtextor/bayesianNetworks")
 
@@ -18,6 +19,7 @@ library(pROC)
 library(ggplot2)
 library(caret)
 library(pcalg)
+library(NetworkDistance)
 
 
 ### Data
@@ -93,10 +95,13 @@ suffStat <- list(dm = data, nlev = c(5, 2, 4, 3, 3, 2, 3, 4, 2, 3, 3, 4, 3, 2), 
 pc.fit = pc(suffStat = suffStat, indepTest = disCItest, alpha = 0.05, labels = lables)
 par(cex=0.25)
 plot(pc.fit)
+ 
+### Evaluation Metric
+adj_mat <- as(pc.fit, 'amat')
+adj_mat <- as.table(adj_mat)
 
-
-
-
+input <-list(adj_mat, adj_mat)
+nd.hamming(A = input)
 
 
 
