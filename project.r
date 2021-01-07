@@ -137,8 +137,11 @@ par(cex=0.25)
 plot(pc.fit)
  
 ### Evaluation Metric
+
+# Using NetworkDistance
 adj_mat_pc <- as(pc.fit, 'amat')
 adj_mat_pc <- as.table(adj_mat_pc)
+adj_mat_pc
 
 pruned_net_bn <- model2network(toString(pruned_net,"bnlearn")) 
 adj_mat_bn <- amat(pruned_net_bn)
@@ -146,9 +149,15 @@ adj_mat_bn <- amat(pruned_net_bn)
 input <-list(adj_mat_pc, adj_mat_bn)
 nd.hamming(A = input)
 
+# Using bnlearn
+nodes = c("age", "sex", "chest_pain", "rest_blood_press", 
+          "cholesterol", "fasting_blood_sugar", "rest_ecg", 
+          "max_heart_rate", "exercise_induced_angina", 
+          "ST_depression", "ST_slope", "coloured_arteries",
+          "thalassemia", "diagnosis")
 
-
-
+net_pc <- as.bn(pc.fit)
+shd(net_pc, pruned_net_bn)
 
 
 
