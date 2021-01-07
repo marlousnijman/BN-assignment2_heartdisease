@@ -110,6 +110,8 @@ tabu_3$arcs
 
 ### convert tabu_3 to dagitty structure ...
 
+as.bn(tabu_3)
+
 
 tabu_net <- dagitty('dag {
 bb="0,0,1,1"
@@ -199,7 +201,7 @@ for (test_index in folds) {
   train_data = data[train_index,]
   
   # Convert model to bnlearn
-  net_bn <- model2network(toString(tabu_net,"bnlearn")) 
+  net_bn <- model2network(toString(tabu_3,"bnlearn")) 
   
   # Fit on data
   fit <- bn.fit(net_bn, train_data); fit
