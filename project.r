@@ -31,8 +31,48 @@ colnames(data) <- c("age", "sex", "chest_pain", "rest_blood_press",
                     "thalassemia", "diagnosis")
 head(data)
 
-
-
+### Pruned Network
+pruned_net <- dagitty('dag {
+bb="-5.198,-4.944,6.567,7.657"
+ST_depression [pos="-3.579,-4.576"]
+ST_slope [pos="-4.217,-1.331"]
+age [pos="2.272,0.152"]
+chest_pain [pos="-0.885,-0.152"]
+cholesterol [pos="1.525,3.714"]
+coloured_arteries [pos="1.210,-2.529"]
+diagnosis [pos="-1.711,-3.396"]
+exercise_induced_angina [pos="-4.263,1.062"]
+fasting_blood_sugar [pos="3.897,-2.776"]
+max_heart_rate [pos="-2.097,-1.628"]
+rest_blood_press [pos="5.587,-0.105"]
+rest_ecg [pos="4.512,2.476"]
+sex [pos="-0.695,2.591"]
+thalassemia [pos="-2.788,1.952"]
+ST_depression -> diagnosis [beta=" 0.13 "]
+ST_slope -> ST_depression [beta=" 0.54 "]
+ST_slope -> diagnosis [beta=" 0.15 "]
+age -> cholesterol [beta=" 0.13 "]
+age -> coloured_arteries [beta=" 0.34 "]
+age -> fasting_blood_sugar [beta=" 0.12 "]
+age -> max_heart_rate [beta=" -0.34 "]
+age -> rest_blood_press [beta=" 0.27 "]
+age -> rest_ecg [beta=" 0.14 "]
+chest_pain -> coloured_arteries [beta=" 0.23 "]
+chest_pain -> diagnosis [beta=" 0.29 "]
+chest_pain -> max_heart_rate [beta=" -0.19 "]
+coloured_arteries -> diagnosis [beta=" 0.36 "]
+exercise_induced_angina -> chest_pain [beta=" 0.33 "]
+exercise_induced_angina -> max_heart_rate [beta=" -0.23 "]
+fasting_blood_sugar -> coloured_arteries [beta=" 0.12 "]
+max_heart_rate -> ST_depression [beta=" -0.17 "]
+max_heart_rate -> ST_slope [beta=" -0.28 "]
+max_heart_rate -> diagnosis [beta=" -0.15 "]
+sex -> cholesterol [beta=" -0.15 "]
+thalassemia -> ST_slope [beta=" 0.23 "]
+thalassemia -> chest_pain [beta=" 0.16 "]
+thalassemia -> exercise_induced_angina [beta=" 0.33 "]
+}
+')
 
 ### Data Inspection
 
@@ -97,13 +137,14 @@ par(cex=0.25)
 plot(pc.fit)
  
 ### Evaluation Metric
-adj_mat <- as(pc.fit, 'amat')
-adj_mat <- as.table(adj_mat)
+adj_mat_pc <- as(pc.fit, 'amat')
+adj_mat_pc <- as.table(adj_mat_pc)
 
-input <-list(adj_mat, adj_mat)
+pruned_net_bn <- model2network(toString(pruned_net,"bnlearn")) 
+adj_mat_bn <- amat(pruned_net_bn)
+
+input <-list(adj_mat_pc, adj_mat_bn)
 nd.hamming(A = input)
-
-
 
 
 
