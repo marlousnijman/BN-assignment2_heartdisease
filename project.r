@@ -105,10 +105,56 @@ bklst_filtered_2
 tabu_3 <- tabu(data, blacklist = bklst_filtered_2)
 plot(tabu_3)
 
+tabu_3$arcs
 
 
 ### convert tabu_3 to dagitty structure ...
 
+
+tabu_net <- dagitty('dag {
+bb="0,0,1,1"
+ST_depression [pos="0.694,0.155"]
+ST_slope [pos="0.700,0.454"]
+age [pos="0.066,0.474"]
+chest_pain [pos="0.334,0.277"]
+cholesterol [pos="0.526,0.625"]
+coloured_arteries [pos="0.709,0.717"]
+diagnosis [pos="0.961,0.424"]
+exercise_induced_angina [pos="0.280,0.595"]
+fasting_blood_sugar [pos="0.534,0.843"]
+max_heart_rate [pos="0.530,0.232"]
+rest_blood_press [pos="0.526,0.410"]
+rest_ecg [pos="0.489,0.057"]
+sex [pos="0.114,0.186"]
+thalassemia [pos="0.115,0.834"]
+fasting_blood_sugar -> rest_blood_press
+rest_blood_press -> rest_ecg
+rest_blood_press -> age
+chest_pain -> diagnosis
+chest_pain -> exercise_induced_angina
+chest_pain -> max_heart_rate
+sex -> cholesterol
+sex -> diagnosis
+age -> sex
+age -> max_heart_rate
+age -> ST_depression
+age -> coloured_arteries
+thalassemia -> diagnosis
+thalassemia -> sex
+thalassemia -> ST_depression
+coloured_arteries -> diagnosis
+coloured_arteries -> thalassemia
+coloured_arteries -> chest_pain
+ST_slope -> diagnosis
+ST_depression -> ST_slope
+exercise_induced_angina -> max_heart_rate
+exercise_induced_angina -> diagnosis
+exercise_induced_angina -> thalassemia
+max_heart_rate -> ST_slope
+max_heart_rate -> ST_depression
+}
+')
+plot(tabu_net, show.coefficients=TRUE)
 
 
 
@@ -118,15 +164,15 @@ plot(tabu_3)
 
 
 ### Test Network Structure 
-impliedConditionalIndependencies(tabu_3)
+impliedConditionalIndependencies(tabu_net)
 
 # Chi-squared Test (only for categorical variables)
-localTests(pruned_net, data, type="cis.chisq", max.conditioning.variables = 4)
+localTests(tabu_net, data, type="cis.chisq", max.conditioning.variables = 4)
 
 ### Edge Coefficients
 edges = ""
-for( x in names(net) ){
-  px <- dagitty::parents(net, x)
+for( x in names(tabu_net) ){
+  px <- dagitty::parents(tabu_net, x)
   for( y in px ){
     tst <- ci.test( x, y,setdiff(px,y), data=data )
     
@@ -153,7 +199,7 @@ for (test_index in folds) {
   train_data = data[train_index,]
   
   # Convert model to bnlearn
-  net_bn <- model2network(toString(pruned_net,"bnlearn")) 
+  net_bn <- model2network(toString(tabu_net,"bnlearn")) 
   
   # Fit on data
   fit <- bn.fit(net_bn, train_data); fit
@@ -175,14 +221,14 @@ range(all_preds)
 all_preds = round(all_preds)
 
 # ROC & AUC
-png("plots/prunednet_roc.png")
+#png("plots/prunednet_roc.png")
 plot(roc(all_preds, all_labels))
 dev.off()
 auc(all_preds, all_labels)
 
 # Confusion Matrix
 cm <- confusionMatrix(data = factor(all_preds), reference = factor(all_labels)); cm
-png("plots/prunednet_confusion_matrix.png", width = 650)
+#png("plots/prunednet_confusion_matrix.png", width = 650)
 ggplot(data = as.data.frame(cm$table), aes(sort(Reference,decreasing = T), Prediction, fill= Freq)) +
   geom_tile() + geom_text(aes(label=Freq), size = 7) +
   scale_fill_gradient(low="white", high="#B4261A") +
