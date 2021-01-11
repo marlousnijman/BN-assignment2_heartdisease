@@ -74,25 +74,6 @@ thalassemia -> exercise_induced_angina [beta=" 0.33 "]
 }
 ')
 
-### Data Inspection
-
-# Continuous Variables
-range(data$age)
-range(data$rest_blood_press)
-range(data$cholesterol)
-range(data$max_heart_rate)
-range(data$ST_depression)
-
-# Categorical Variables
-factor(data$sex)[1]
-factor(data$chest_pain)[1]
-factor(data$fasting_blood_sugar)[1]
-factor(data$rest_ecg)[1]
-factor(data$exercise_induced_angina)[1]
-factor(data$ST_slope)[1]
-factor(data$coloured_arteries)[1] 
-factor(data$thalassemia)[1] 
-factor(data$diagnosis)[1] 
 
 ### Preprocessing
 
@@ -129,20 +110,20 @@ data$diagnosis[which(data$diagnosis > 0)] <- 1
 head(data)
 
 ### pc-algorithm
-data
-lables <- colnames(data)
-suffStat <- list(dm = data, nlev = c(5, 2, 4, 3, 3, 2, 3, 4, 2, 3, 3, 4, 3, 2), adaptDF = FALSE)
-pc.fit = pc(suffStat = suffStat, indepTest = disCItest, alpha = 0.05, labels = lables)
-par(cex=0.25)
+nlev <- as.vector(sapply(sapply(data, unique), length))
+labels <- colnames(data)
+suffStat <- list(dm = data, nlev = nlev, adaptDF = FALSE)
+pc.fit = pc(suffStat = suffStat, indepTest = disCItest, alpha = 0.05, labels = labels)
+par(cex=0.5)
 plot(pc.fit)
  
 ### Evaluation Metric
 
 # Using NetworkDistance
-adj_mat_pc <- as(pc.fit, 'amat')
-adj_mat_pc <- as.table(adj_mat_pc)
-adj_mat_pc
+# pc algorithm network adjacancy matrix
+adj_mat_pc <- as.table(as(pc.fit, 'amat'))
 
+# original network adjacancy matrix
 pruned_net_bn <- model2network(toString(pruned_net,"bnlearn")) 
 adj_mat_bn <- amat(pruned_net_bn)
 
@@ -150,25 +131,48 @@ input <-list(adj_mat_pc, adj_mat_bn)
 nd.hamming(A = input)
 
 # Using bnlearn
-nodes = c("age", "sex", "chest_pain", "rest_blood_press", 
-          "cholesterol", "fasting_blood_sugar", "rest_ecg", 
-          "max_heart_rate", "exercise_induced_angina", 
-          "ST_depression", "ST_slope", "coloured_arteries",
-          "thalassemia", "diagnosis")
-
-net_pc <- as.bn(pc.fit)
-shd(net_pc, pruned_net_bn)
+pc_net_bn <- as.bn(pc.fit)
+shd(pc_net_bn, pruned_net_bn)
 
 
+### Cross Validation
+k = 10
+folds = createFolds(data$sex, k = k)
+all_preds <- NULL
+all_labels <- NULL
+for (test_index in folds) {
+  # Split data into test and train
+  train_index <- setdiff(1:nrow(data), test_index)
+  test_data = data[test_index,]
+  train_data = data[train_index,]
+  
+  # Fit on data
+  fit <- bn.fit(pc_net_bn, train_data); fit
+  
+  # Predict 
+  preds <- predict(fit, node= 'diagnosis', data = test_data, method = "bayes-lw", n = 10000) 
+  
+  # Save all data
+  all_preds <- c(all_preds, preds)
+  all_labels <- c(all_labels, test_data$diagnosis)
+}
 
+### Analysis
 
+# Check range
+range(all_preds)
 
+# Round values
+all_preds = round(all_preds)
 
-
-
-
-
-
-
-
-
+# Confusion Matrix
+cm <- confusionMatrix(data = factor(all_preds), reference = factor(all_labels)); cm
+png("plots/pc_net_confusion_matrix.png", width = 650)
+ggplot(data = as.data.frame(cm$table), aes(sort(Reference,decreasing = T), Prediction, fill= Freq)) +
+  geom_tile() + geom_text(aes(label=Freq), size = 7) +
+  scale_fill_gradient(low="white", high="#B4261A") +
+  labs(x = "Ground Truth",y = "Prediction", fill="Frequency", title = "Bayesian Network Predictions", size=8) +
+  scale_x_discrete(labels=c("Heart Disease", "No Heart Disease")) +
+  scale_y_discrete(labels=c("No Heart Disease", "Heart Disease")) +
+  theme_bw(base_size = 15)
+dev.off()
