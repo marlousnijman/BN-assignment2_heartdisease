@@ -98,7 +98,6 @@ bklst_filtered
 tabu_2 <- tabu(data, blacklist = bklst_filtered)
 plot(tabu_2)
 tabu_2$arcs
-
 # remove all arcs from diagnosis to *
 bklst_filtered_2 <- rbind(bklst_filtered, tabu_2$arcs[9,], tabu_2$arcs[17,])
 bklst_filtered_2
@@ -110,6 +109,8 @@ tabu_3$arcs
 
 
 ### convert tabu_3 to dagitty structure ...
+
+as.bn(tabu_3)
 
 
 tabu_net <- dagitty('dag {
@@ -200,7 +201,7 @@ for (test_index in folds) {
   train_data = data[train_index,]
   
   # Convert model to bnlearn
-  net_bn <- model2network(toString(tabu_net,"bnlearn")) 
+  net_bn <- model2network(toString(tabu_3,"bnlearn")) 
   
   # Fit on data
   fit <- bn.fit(net_bn, train_data); fit
