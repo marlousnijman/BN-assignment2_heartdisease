@@ -109,7 +109,7 @@ data$ST_depression <- as.numeric(cut(data$ST_depression, c(-0.1, 0.0, 2, 6.5), l
 
 # Bin diagnosis
 data$diagnosis[which(data$diagnosis > 0)] <- 1 
-head(data)
+
 
 ### pc-algorithm
 nlev <- as.vector(sapply(sapply(data, unique), length))

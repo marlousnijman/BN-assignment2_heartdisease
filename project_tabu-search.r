@@ -115,9 +115,11 @@ to <- c("age", "sex", "chest_pain", "rest_blood_press",
 
 blacklist <- data.frame(from = from, to = to); blacklist
 
-tabu_net <- tabu(data, maxp = Inf, blacklist = blacklist)
+tabu_net <- tabu(data, maxp = 4, blacklist = blacklist)
 plot(tabu_net)
 
+
+### Evaluation Metric
 # Convert to bn
 pruned_net_bn <- model2network(toString(pruned_net,"bnlearn")) 
 

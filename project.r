@@ -85,7 +85,7 @@ to <- c("age", "sex", "chest_pain", "rest_blood_press",
 
 blacklist <- data.frame(from = from, to = to); blacklist
 
-tabu_net <- tabu(data, maxp = Inf, blacklist = blacklist)
+tabu_net <- tabu(data, maxp = 4, blacklist = blacklist)
 
 ### Evaluation Metric
 # Convert to bn
