@@ -31,6 +31,7 @@ colnames(data) <- c("age", "sex", "chest_pain", "rest_blood_press",
                     "thalassemia", "diagnosis")
 head(data)
 
+
 ### Pruned Network
 pruned_net <- dagitty('dag {
 bb="-5.198,-4.944,6.567,7.657"
@@ -96,6 +97,7 @@ data$thalassemia <- as.numeric(data$thalassemia)
 data$coloured_arteries <- as.numeric(data$coloured_arteries)
 data$diagnosis <- as.numeric(data$diagnosis)
 
+
 ### Dealing with different types of data
 
 # Convert continuous data to categorical data
@@ -113,25 +115,16 @@ head(data)
 nlev <- as.vector(sapply(sapply(data, unique), length))
 labels <- colnames(data)
 suffStat <- list(dm = data, nlev = nlev, adaptDF = FALSE)
-pc.fit = pc(suffStat = suffStat, indepTest = disCItest, alpha = 0.05, labels = labels)
+pc.fit = pc(suffStat = suffStat, indepTest = disCItest, alpha = 0.05, labels = labels, m.max = Inf)
 par(cex=0.5)
 plot(pc.fit)
  
 ### Evaluation Metric
-
-# Using NetworkDistance
-# pc algorithm network adjacancy matrix
-adj_mat_pc <- as.table(as(pc.fit, 'amat'))
-
-# original network adjacancy matrix
+# Convert to bn
 pruned_net_bn <- model2network(toString(pruned_net,"bnlearn")) 
-adj_mat_bn <- amat(pruned_net_bn)
-
-input <-list(adj_mat_pc, adj_mat_bn)
-nd.hamming(A = input)
-
-# Using bnlearn
 pc_net_bn <- as.bn(pc.fit)
+
+# Compute Structural Hamming Distance
 shd(pc_net_bn, pruned_net_bn)
 
 
@@ -156,6 +149,7 @@ for (test_index in folds) {
   all_preds <- c(all_preds, preds)
   all_labels <- c(all_labels, test_data$diagnosis)
 }
+
 
 ### Analysis
 

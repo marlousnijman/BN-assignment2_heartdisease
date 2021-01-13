@@ -26,27 +26,49 @@ colnames(data) <- c("age", "sex", "chest_pain", "rest_blood_press",
 head(data)
 
 
+### Pruned Network
+pruned_net <- dagitty('dag {
+bb="-5.198,-4.944,6.567,7.657"
+ST_depression [pos="-3.579,-4.576"]
+ST_slope [pos="-4.217,-1.331"]
+age [pos="2.272,0.152"]
+chest_pain [pos="-0.885,-0.152"]
+cholesterol [pos="1.525,3.714"]
+coloured_arteries [pos="1.210,-2.529"]
+diagnosis [pos="-1.711,-3.396"]
+exercise_induced_angina [pos="-4.263,1.062"]
+fasting_blood_sugar [pos="3.897,-2.776"]
+max_heart_rate [pos="-2.097,-1.628"]
+rest_blood_press [pos="5.587,-0.105"]
+rest_ecg [pos="4.512,2.476"]
+sex [pos="-0.695,2.591"]
+thalassemia [pos="-2.788,1.952"]
+ST_depression -> diagnosis [beta=" 0.13 "]
+ST_slope -> ST_depression [beta=" 0.54 "]
+ST_slope -> diagnosis [beta=" 0.15 "]
+age -> cholesterol [beta=" 0.13 "]
+age -> coloured_arteries [beta=" 0.34 "]
+age -> fasting_blood_sugar [beta=" 0.12 "]
+age -> max_heart_rate [beta=" -0.34 "]
+age -> rest_blood_press [beta=" 0.27 "]
+age -> rest_ecg [beta=" 0.14 "]
+chest_pain -> coloured_arteries [beta=" 0.23 "]
+chest_pain -> diagnosis [beta=" 0.29 "]
+chest_pain -> max_heart_rate [beta=" -0.19 "]
+coloured_arteries -> diagnosis [beta=" 0.36 "]
+exercise_induced_angina -> chest_pain [beta=" 0.33 "]
+exercise_induced_angina -> max_heart_rate [beta=" -0.23 "]
+fasting_blood_sugar -> coloured_arteries [beta=" 0.12 "]
+max_heart_rate -> ST_depression [beta=" -0.17 "]
+max_heart_rate -> ST_slope [beta=" -0.28 "]
+max_heart_rate -> diagnosis [beta=" -0.15 "]
+sex -> cholesterol [beta=" -0.15 "]
+thalassemia -> ST_slope [beta=" 0.23 "]
+thalassemia -> chest_pain [beta=" 0.16 "]
+thalassemia -> exercise_induced_angina [beta=" 0.33 "]
+}
+')
 
-
-### Data Inspection
-
-# Continuous Variables
-range(data$age)
-range(data$rest_blood_press)
-range(data$cholesterol)
-range(data$max_heart_rate)
-range(data$ST_depression)
-
-# Categorical Variables
-factor(data$sex)[1]
-factor(data$chest_pain)[1]
-factor(data$fasting_blood_sugar)[1]
-factor(data$rest_ecg)[1]
-factor(data$exercise_induced_angina)[1]
-factor(data$ST_slope)[1]
-factor(data$coloured_arteries)[1] 
-factor(data$thalassemia)[1] 
-factor(data$diagnosis)[1] 
 
 ### Preprocessing
 
@@ -69,6 +91,7 @@ data$thalassemia <- as.numeric(data$thalassemia)
 data$coloured_arteries <- as.numeric(data$coloured_arteries)
 data$diagnosis <- as.numeric(data$diagnosis)
 
+
 ### Dealing with different types of data
 
 # Convert continuous data to categorical data
@@ -82,37 +105,71 @@ data$ST_depression <- as.numeric(cut(data$ST_depression, c(-0.1, 0.0, 2, 6.5), l
 data$diagnosis[which(data$diagnosis > 0)] <- 1 
 
 
-head(data)
+### Tabu Search
+from <- rep("diagnosis", 13)
+to <- c("age", "sex", "chest_pain", "rest_blood_press", 
+        "cholesterol", "fasting_blood_sugar", "rest_ecg", 
+        "max_heart_rate", "exercise_induced_angina", 
+        "ST_depression", "ST_slope", "coloured_arteries",
+        "thalassemia")
+
+blacklist <- data.frame(from = from, to = to); blacklist
+
+tabu_net <- tabu(data, maxp = Inf, blacklist = blacklist)
+plot(tabu_net)
+
+# Convert to bn
+pruned_net_bn <- model2network(toString(pruned_net,"bnlearn")) 
+
+# Compute Structural Hamming Distance
+shd(tabu_net, pruned_net_bn)
 
 
+### Cross Validation
+k = 10
+folds = createFolds(data$sex, k = k)
+all_preds <- NULL
+all_labels <- NULL
+for (test_index in folds) {
+  # Split data into test and train
+  train_index <- setdiff(1:nrow(data), test_index)
+  test_data = data[test_index,]
+  train_data = data[train_index,]
 
-### tabu search
-
-tabu_1 <- tabu(data)
-plot(tabu_1)
-tabu_1$arcs
-# remove all arcs from diagnosis to *
-bklst_filtered <- rbind(tabu_1$arcs[3:7,], tabu_1$arcs[15,], tabu_1$arcs[19,])
-bklst_filtered
-
-tabu_2 <- tabu(data, blacklist = bklst_filtered)
-plot(tabu_2)
-tabu_2$arcs
-# remove all arcs from diagnosis to *
-bklst_filtered_2 <- rbind(bklst_filtered, tabu_2$arcs[9,], tabu_2$arcs[17,])
-bklst_filtered_2
-
-tabu_3 <- tabu(data, blacklist = bklst_filtered_2)
-plot(tabu_3)
-
-tabu_3$arcs
-
-
-### convert tabu_3 to dagitty structure ...
-
-as.bn(tabu_3)
+  # Fit on data
+  fit <- bn.fit(tabu_net, train_data); fit
+  
+  # Predict 
+  preds <- predict(fit, node= 'diagnosis', data = test_data, method = "bayes-lw", n = 10000) 
+  
+  # Save all data
+  all_preds <- c(all_preds, preds)
+  all_labels <- c(all_labels, test_data$diagnosis)
+}
 
 
+### Analysis
+
+# Check range
+range(all_preds)
+
+# Round values
+all_preds = round(all_preds)
+
+# Confusion Matrix
+cm <- confusionMatrix(data = factor(all_preds), reference = factor(all_labels)); cm
+png("plots/tabu_net_confusion_matrix.png", width = 650)
+ggplot(data = as.data.frame(cm$table), aes(sort(Reference,decreasing = T), Prediction, fill= Freq)) +
+  geom_tile() + geom_text(aes(label=Freq), size = 7) +
+  scale_fill_gradient(low="white", high="#B4261A") +
+  labs(x = "Ground Truth",y = "Prediction", fill="Frequency", title = "Pruned Bayesian Network Predictions", size=8) +
+  scale_x_discrete(labels=c("Heart Disease", "No Heart Disease")) +
+  scale_y_discrete(labels=c("No Heart Disease", "Heart Disease")) +
+  theme_bw(base_size = 15)
+dev.off()
+
+
+### Plot network using Dagitty
 tabu_net <- dagitty('dag {
 bb="0,0,1,1"
 ST_depression [pos="0.694,0.155"]
@@ -156,101 +213,5 @@ max_heart_rate -> ST_slope
 max_heart_rate -> ST_depression
 }
 ')
+
 plot(tabu_net, show.coefficients=TRUE)
-
-
-
-
-
-
-
-
-### Test Network Structure 
-impliedConditionalIndependencies(tabu_net)
-
-# Chi-squared Test (only for categorical variables)
-localTests(tabu_net, data, type="cis.chisq", max.conditioning.variables = 4)
-
-### Edge Coefficients
-edges = ""
-for( x in names(tabu_net) ){
-  px <- dagitty::parents(tabu_net, x)
-  for( y in px ){
-    tst <- ci.test( x, y,setdiff(px,y), data=data )
-    
-    # Print edges
-    print(paste(y,'->',x, tst$statistic, tst$p.value ) )
-    
-    # Determine edges to make the pruned net
-    # if(tst$p.value < 0.05){
-    # edges <- paste(edges,y,'->',x, '[beta = "',round(tst$statistic, digits = 2),'"]\n')
-    # }
-  }
-}
-cat(edges)
-
-### Cross Validation
-k = 10
-folds = createFolds(data$sex, k = k)
-all_preds <- NULL
-all_labels <- NULL
-for (test_index in folds) {
-  # Split data into test and train
-  train_index <- setdiff(1:nrow(data), test_index)
-  test_data = data[test_index,]
-  train_data = data[train_index,]
-  
-  # Convert model to bnlearn
-  net_bn <- model2network(toString(tabu_3,"bnlearn")) 
-  
-  # Fit on data
-  fit <- bn.fit(net_bn, train_data); fit
-  
-  # Predict 
-  preds <- predict(fit, node= 'diagnosis', data = test_data, method = "bayes-lw", n = 10000) 
-  
-  # Save all data
-  all_preds <- c(all_preds, preds)
-  all_labels <- c(all_labels, test_data$diagnosis)
-}
-
-### Analysis
-
-# Check range
-range(all_preds)
-
-# Round values
-all_preds = round(all_preds)
-
-# ROC & AUC
-#png("plots/prunednet_roc.png")
-plot(roc(all_preds, all_labels))
-dev.off()
-auc(all_preds, all_labels)
-
-# Confusion Matrix
-cm <- confusionMatrix(data = factor(all_preds), reference = factor(all_labels)); cm
-#png("plots/prunednet_confusion_matrix.png", width = 650)
-ggplot(data = as.data.frame(cm$table), aes(sort(Reference,decreasing = T), Prediction, fill= Freq)) +
-  geom_tile() + geom_text(aes(label=Freq), size = 7) +
-  scale_fill_gradient(low="white", high="#B4261A") +
-  labs(x = "Ground Truth",y = "Prediction", fill="Frequency", title = "Pruned Bayesian Network Predictions", size=8) +
-  scale_x_discrete(labels=c("Heart Disease", "No Heart Disease")) +
-  scale_y_discrete(labels=c("No Heart Disease", "Heart Disease")) +
-  theme_bw(base_size = 15)
-dev.off()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
