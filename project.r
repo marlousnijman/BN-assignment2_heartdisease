@@ -113,7 +113,7 @@ head(data)
 nlev <- as.vector(sapply(sapply(data, unique), length))
 labels <- colnames(data)
 suffStat <- list(dm = data, nlev = nlev, adaptDF = FALSE)
-pc.fit = pc(suffStat = suffStat, indepTest = disCItest, alpha = 0.05, labels = labels)
+pc.fit = pc(suffStat = suffStat, indepTest = disCItest, alpha = 0.05, labels = labels, m.max = 1)
 par(cex=0.5)
 plot(pc.fit)
  
