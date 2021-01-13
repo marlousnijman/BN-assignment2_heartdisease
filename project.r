@@ -5,6 +5,10 @@
 # install.packages('ggplot2', dependencies=TRUE)
 # install.packages('caret', dependencies=TRUE)
 # install.packages("dagitty", dependencies = TRUE)
+# install.packages('pcalg', dependencies=TRUE)
+# install.packages("BiocManager")
+# install.packages('NetworkDistance', dependencies=TRUE)
+# BiocManager::install(c("graph", "RBGL", "Rgraphviz"))
 # remotes::install_github("jtextor/bayesianNetworks")
 
 ### Libraries
@@ -14,6 +18,8 @@ library(bnlearn)
 library(pROC)
 library(ggplot2)
 library(caret)
+library(pcalg)
+library(NetworkDistance)
 
 
 ### Data
@@ -25,28 +31,6 @@ colnames(data) <- c("age", "sex", "chest_pain", "rest_blood_press",
                     "thalassemia", "diagnosis")
 head(data)
 
-
-
-
-### Data Inspection
-
-# Continuous Variables
-range(data$age)
-range(data$rest_blood_press)
-range(data$cholesterol)
-range(data$max_heart_rate)
-range(data$ST_depression)
-
-# Categorical Variables
-factor(data$sex)[1]
-factor(data$chest_pain)[1]
-factor(data$fasting_blood_sugar)[1]
-factor(data$rest_ecg)[1]
-factor(data$exercise_induced_angina)[1]
-factor(data$ST_slope)[1]
-factor(data$coloured_arteries)[1] 
-factor(data$thalassemia)[1] 
-factor(data$diagnosis)[1] 
 
 ### Preprocessing
 
@@ -82,10 +66,33 @@ data$ST_depression <- as.numeric(cut(data$ST_depression, c(-0.1, 0.0, 2, 6.5), l
 data$diagnosis[which(data$diagnosis > 0)] <- 1 
 
 
-head(data)
+### pc-algorithm
+nlev <- as.vector(sapply(sapply(data, unique), length))
+labels <- colnames(data)
+suffStat <- list(dm = data, nlev = nlev, adaptDF = FALSE)
+pc.fit = pc(suffStat = suffStat, indepTest = disCItest, alpha = 0.05, labels = labels, m.max = Inf)
+par(cex=0.5)
+plot(pc.fit)
 
 
+### Tabu algorithm
+from <- rep("diagnosis", 13)
+to <- c("age", "sex", "chest_pain", "rest_blood_press", 
+        "cholesterol", "fasting_blood_sugar", "rest_ecg", 
+        "max_heart_rate", "exercise_induced_angina", 
+        "ST_depression", "ST_slope", "coloured_arteries",
+        "thalassemia")
 
+blacklist <- data.frame(from = from, to = to); blacklist
+
+tabu_net <- tabu(data, maxp = Inf, blacklist = blacklist)
+
+### Evaluation Metric
+# Convert to bn
+pc_net_bn <- as.bn(pc.fit)
+
+# Compute Structural Hamming Distance
+shd(pc_net_bn, tabu_net)
 
 
 
