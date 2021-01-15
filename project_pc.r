@@ -170,3 +170,50 @@ ggplot(data = as.data.frame(cm$table), aes(sort(Reference,decreasing = T), Predi
   scale_y_discrete(labels=c("No Heart Disease", "Heart Disease")) +
   theme_bw(base_size = 15)
 dev.off()
+
+
+### Plot Network Using Dagitty
+pc_net_dag <- dagitty('dag {
+bb="0,0,1,1"
+ST_depression [pos="0.694,0.155"]
+ST_slope [pos="0.700,0.454"]
+age [pos="0.066,0.474"]
+chest_pain [pos="0.334,0.277"]
+cholesterol [pos="0.491,0.586"]
+coloured_arteries [pos="0.703,0.791"]
+diagnosis [pos="0.961,0.424"]
+exercise_induced_angina [pos="0.280,0.595"]
+fasting_blood_sugar [pos="0.617,0.899"]
+max_heart_rate [pos="0.530,0.232"]
+rest_blood_press [pos="0.526,0.410"]
+rest_ecg [pos="0.516,0.132"]
+sex [pos="0.114,0.186"]
+thalassemia [pos="0.115,0.834"]
+ST_slope -> diagnosis [beta = " 0.33 "]
+ coloured_arteries -> diagnosis [beta = " 0.45 "]
+ sex -> diagnosis [beta = " 0.27 "]
+}
+')
+
+
+### Determine Edge Coefficients
+edges = ""
+for( x in names(pc_net_dag) ){
+  px <- dagitty::parents(pc_net_dag, x)
+  for( y in px ){
+    tst <- ci.test( x, y,setdiff(px,y), data=data )
+    
+    # Print edges
+    print(paste(y,'->',x, tst$statistic, tst$p.value ) )
+    
+    # Determine edge coefficients
+    edges <- paste(edges,y,'->',x, '[beta = "',round(tst$statistic, digits = 2),'"]\n')
+  }
+}
+cat(edges)
+
+
+### Plot Network
+png('plots/pc_net.png', width = 750, height = 750)
+plot(pc_net_dag, show.coefficients=TRUE)
+dev.off()

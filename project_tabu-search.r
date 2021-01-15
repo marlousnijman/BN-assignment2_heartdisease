@@ -211,8 +211,8 @@ thalassemia [pos="0.115,0.834"]
  age -> sex [beta = " -0.09 "]
  exercise_induced_angina -> thalassemia [beta = " 0.33 "]
 }
-
 ')
+
 
 ### Determine Edge Coefficients
 edges = ""
