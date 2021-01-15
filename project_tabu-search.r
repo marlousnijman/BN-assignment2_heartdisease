@@ -115,7 +115,7 @@ to <- c("age", "sex", "chest_pain", "rest_blood_press",
 
 blacklist <- data.frame(from = from, to = to); blacklist
 
-tabu_net <- tabu(data, maxp = 4, blacklist = blacklist)
+tabu_net <- tabu(data, maxp = 4)#, blacklist = blacklist)
 par(cex=0.9)
 plot(tabu_net)
 
@@ -213,6 +213,48 @@ thalassemia [pos="0.115,0.834"]
 }
 ')
 
+tabu_net_dag_nobl <-
+  dagitty('dag {
+    bb="0,0,1,1"
+    ST_depression [pos="0.694,0.155"]
+    ST_slope [pos="0.700,0.454"]
+    age [pos="0.066,0.474"]
+    chest_pain [pos="0.334,0.277"]
+    cholesterol [pos="0.491,0.586"]
+    coloured_arteries [pos="0.703,0.791"]
+    diagnosis [pos="0.961,0.424"]
+    exercise_induced_angina [pos="0.280,0.595"]
+    fasting_blood_sugar [pos="0.617,0.899"]
+    max_heart_rate [pos="0.530,0.232"]
+    rest_blood_press [pos="0.526,0.410"]
+    rest_ecg [pos="0.516,0.132"]
+    sex [pos="0.114,0.186"]
+    thalassemia [pos="0.115,0.834"]
+     age -> ST_depression [beta = " 0.2 "]
+     diagnosis -> ST_depression [beta = " 0.21 "]
+     thalassemia -> ST_depression [beta = " 0.2 "]
+     ST_depression -> ST_slope [beta = " 0.52 "]
+     diagnosis -> ST_slope [beta = " 0.15 "]
+     coloured_arteries -> age [beta = " 0.36 "]
+     diagnosis -> chest_pain [beta = " 0.41 "]
+     sex -> cholesterol [beta = " -0.16 "]
+     diagnosis -> coloured_arteries [beta = " 0.46 "]
+     rest_ecg -> diagnosis [beta = " 0.18 "]
+     thalassemia -> diagnosis [beta = " 0.53 "]
+     chest_pain -> exercise_induced_angina [beta = " 0.23 "]
+     diagnosis -> exercise_induced_angina [beta = " 0.28 "]
+     max_heart_rate -> exercise_induced_angina [beta = " -0.14 "]
+     rest_blood_press -> fasting_blood_sugar [beta = " 0.17 "]
+     ST_slope -> max_heart_rate [beta = " -0.22 "]
+     age -> max_heart_rate [beta = " -0.28 "]
+     chest_pain -> max_heart_rate [beta = " -0.17 "]
+     diagnosis -> max_heart_rate [beta = " -0.18 "]
+     age -> rest_blood_press [beta = " 0.27 "]
+     age -> sex [beta = " -0.17 "]
+     chest_pain -> sex [beta = " -0.12 "]
+     diagnosis -> sex [beta = " 0.33 "]
+  }
+')
 
 ### Determine Edge Coefficients
 edges = ""
@@ -231,7 +273,11 @@ for( x in names(tabu_net_dag) ){
 cat(edges)
 
 
-### Plot Network
+### Plot Networks
 png('plots/tabu_net.png', width = 750, height = 750)
 plot(tabu_net_dag, show.coefficients=TRUE)
+dev.off()
+
+png('plots/tabu_net_nobl.png', width = 750, height = 750)
+plot(tabu_net_dag_nobl, show.coefficients=TRUE)
 dev.off()
