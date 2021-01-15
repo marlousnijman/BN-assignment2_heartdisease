@@ -116,6 +116,7 @@ to <- c("age", "sex", "chest_pain", "rest_blood_press",
 blacklist <- data.frame(from = from, to = to); blacklist
 
 tabu_net <- tabu(data, maxp = 4, blacklist = blacklist)
+par(cex=0.9)
 plot(tabu_net)
 
 
@@ -172,48 +173,65 @@ dev.off()
 
 
 ### Plot network using Dagitty
-tabu_net <- dagitty('dag {
+tabu_net_dag <- dagitty('dag {
 bb="0,0,1,1"
 ST_depression [pos="0.694,0.155"]
 ST_slope [pos="0.700,0.454"]
 age [pos="0.066,0.474"]
 chest_pain [pos="0.334,0.277"]
-cholesterol [pos="0.526,0.625"]
-coloured_arteries [pos="0.709,0.717"]
+cholesterol [pos="0.491,0.586"]
+coloured_arteries [pos="0.703,0.791"]
 diagnosis [pos="0.961,0.424"]
 exercise_induced_angina [pos="0.280,0.595"]
-fasting_blood_sugar [pos="0.534,0.843"]
+fasting_blood_sugar [pos="0.617,0.899"]
 max_heart_rate [pos="0.530,0.232"]
 rest_blood_press [pos="0.526,0.410"]
-rest_ecg [pos="0.489,0.057"]
+rest_ecg [pos="0.516,0.132"]
 sex [pos="0.114,0.186"]
 thalassemia [pos="0.115,0.834"]
-fasting_blood_sugar -> rest_blood_press
-rest_blood_press -> rest_ecg
-rest_blood_press -> age
-chest_pain -> diagnosis
-chest_pain -> exercise_induced_angina
-chest_pain -> max_heart_rate
-sex -> cholesterol
-sex -> diagnosis
-age -> sex
-age -> max_heart_rate
-age -> ST_depression
-age -> coloured_arteries
-thalassemia -> diagnosis
-thalassemia -> sex
-thalassemia -> ST_depression
-coloured_arteries -> diagnosis
-coloured_arteries -> thalassemia
-coloured_arteries -> chest_pain
-ST_slope -> diagnosis
-ST_depression -> ST_slope
-exercise_induced_angina -> max_heart_rate
-exercise_induced_angina -> diagnosis
-exercise_induced_angina -> thalassemia
-max_heart_rate -> ST_slope
-max_heart_rate -> ST_depression
+ exercise_induced_angina -> ST_depression [beta = " 0.27 "]
+ ST_depression -> ST_slope [beta = " 0.59 "]
+ ST_slope -> age [beta = " 0.13 "]
+ exercise_induced_angina -> chest_pain [beta = " 0.38 "]
+ sex -> cholesterol [beta = " -0.16 "]
+ age -> coloured_arteries [beta = " 0.33 "]
+ chest_pain -> coloured_arteries [beta = " 0.17 "]
+ thalassemia -> coloured_arteries [beta = " 0.18 "]
+ chest_pain -> diagnosis [beta = " 0.21 "]
+ coloured_arteries -> diagnosis [beta = " 0.37 "]
+ exercise_induced_angina -> diagnosis [beta = " 0.25 "]
+ thalassemia -> diagnosis [beta = " 0.38 "]
+ rest_blood_press -> fasting_blood_sugar [beta = " 0.17 "]
+ ST_slope -> max_heart_rate [beta = " -0.24 "]
+ age -> max_heart_rate [beta = " -0.32 "]
+ chest_pain -> max_heart_rate [beta = " -0.18 "]
+ exercise_induced_angina -> max_heart_rate [beta = " -0.18 "]
+ age -> rest_blood_press [beta = " 0.27 "]
+ rest_blood_press -> rest_ecg [beta = " 0.16 "]
+ age -> sex [beta = " -0.09 "]
+ exercise_induced_angina -> thalassemia [beta = " 0.33 "]
 }
+
 ')
 
-plot(tabu_net, show.coefficients=TRUE)
+### Determine Edge Coefficients
+edges = ""
+for( x in names(tabu_net_dag) ){
+  px <- dagitty::parents(tabu_net_dag, x)
+  for( y in px ){
+    tst <- ci.test( x, y,setdiff(px,y), data=data )
+    
+    # Print edges
+    print(paste(y,'->',x, tst$statistic, tst$p.value ) )
+    
+    # Determine edge coefficients
+    edges <- paste(edges,y,'->',x, '[beta = "',round(tst$statistic, digits = 2),'"]\n')
+  }
+}
+cat(edges)
+
+
+### Plot Network
+png('plots/tabu_net.png', width = 750, height = 750)
+plot(tabu_net_dag, show.coefficients=TRUE)
+dev.off()
